@@ -1,0 +1,266 @@
+import simplegui  # import the graphical interface
+import math # import math class to do magic
+
+WIDTH = 800
+HEIGHT = 800
+house = False
+
+#Astronomical Unit
+AU = 20
+
+#days per second
+dps = 1   # set reference for day
+dps /= 1.0   # set divider by time in seconds
+
+# initiate buttons
+timepassed = 0
+button_name = ["Planeten Namen anzeigen", "Planeten Namen verbergen"]
+but_show = 0
+show_names = False
+button2_name = ["Umlaufbahn anzeigen", "Umlaufbahn  verbergen"]
+but2_name = 1
+orbit_show = True
+
+def toggle_house():
+    global house
+    house = not house
+    
+def fahrenheit2celsius(fahrenheit):
+    celsius = (5.0 / 9) * (fahrenheit - 32)
+    return celsius
+
+def celsius2farenheit(celsius):
+    fahrenheit = ((9.0 / 5) * celsius) + 32
+    return fahrenheit
+
+def years(days):
+    y = days / 365.256363004 # :) real variable for units of rotation
+    if int(y) == 0:
+        return str(int(days %  365.256363004)) + " Tage"
+    else:
+        return str(int(y)) + " Jahre und " + str(int(days %  365.256363004)) + " Tage"
+    
+class Sun:
+    def __init__(self, pos, radius):
+        self.radius = radius
+        self.pos = pos
+        
+    def __str__(self):
+        return "sun"
+          
+    def draw(self,canvas):
+       canvas.draw_circle(self.pos, self.radius, 14, "#FFAC47", "#FFAC47")
+     #  load image and draw it attempt
+     #   image = simplegui.load_image('http://jad.stormrage.ro/tmp/sun.gif')
+     
+     #  canvas.draw_image(image, (1521 / 2, 1818 / 2), (1521, 1818), (50, 50), (100, 100))
+
+
+# we'll use simple circles to define and draw a celestial object 
+    
+    def get_pos(self):
+        return self.pos
+
+# now lets do this for planets
+
+class Planet:
+    def __init__(self, name, orbit_around, orbit_radius, radius, orbit_period, trans_clockwise, color, ellipse_y = 1, initial_pos = 0):
+        self.name = name
+        self.orbit_around = orbit_around
+        if str(self.orbit_around) == "sun":
+            self.is_planet = True
+        else:
+            self.is_planet = False
+        self.init_pos = list(orbit_around.get_pos())
+        self.pos = list(self.init_pos)
+        self.orbit_radius = orbit_radius
+        self.pos[0] += orbit_radius
+        self.radius = radius
+        self.color = color
+        self.trans_pos = initial_pos
+        self.orbit_period = orbit_period
+        self.trans_clockwise = trans_clockwise
+        self.ellipse_y = ellipse_y
+        
+        if trans_clockwise:
+            self.trans_vel = (1/orbit_period) * ((2 * math.pi)) * dps
+        else:
+            self.trans_vel = -(1/orbit_period) * ((2 * math.pi)) * dps
+    
+    def __str__(self):
+        return self.name
+    
+    def draw(self, canvas):
+        canvas.draw_circle(self.pos, self.radius, 1, self.color, self.color)
+    
+    def update(self):
+        if self.trans_clockwise:
+            self.trans_vel = (1/self.orbit_period) * ((2 * math.pi)) * dps
+        else:
+            self.trans_vel = -(1/self.orbit_period) * ((2 * math.pi)) * dps
+        self.trans_pos += self.trans_vel % (2 * math.pi)
+        self.init_pos = list(self.orbit_around.get_pos())
+        self.pos = [self.init_pos[0] + math.cos(self.trans_pos) * self.orbit_radius,
+                    self.init_pos[1] + (math.sin(self.trans_pos) * self.orbit_radius)* self.ellipse_y]
+    
+    def get_pos(self):
+        return self.pos
+        
+    def isplanet(self):
+        return self.is_planet
+
+    
+def names():
+    global but_show, planetnames, button_name, show_names
+    but_show += 1
+    but_show = but_show % 2
+    planetnames.set_text(button_name[but_show])
+    if show_names:
+        show_names = False
+    else:
+        show_names = True
+        
+def orbits():
+    global orbitsdisplay, button2_name, but2_name, orbit_show
+    but2_name += 1
+    but2_name = but2_name % 2
+    orbitsdisplay.set_text(button2_name[but2_name])
+    if orbit_show:
+        orbit_show = False
+    else:
+        orbit_show = True
+    
+def draw(canvas):
+    global timepassed, dps, show_names, orbit_show
+    timepassed += dps
+    if orbit_show:
+        for i in range(1,14):
+            canvas.draw_circle([WIDTH/2, HEIGHT/2], i*AU, 0.1, "white")
+    
+
+    canvas.draw_text('Willkommen in der Sonnensystem',[WIDTH/16, HEIGHT/20], 24, "white")  
+    canvas.draw_text(years(timepassed),[WIDTH/16, HEIGHT/10], 24, "white")
+    celsius = fahrenheit2celsius(int(timepassed))
+    canvas.draw_text(str(celsius)+' Celsius',[WIDTH/16, HEIGHT/7], 14, "white")
+    celsius = celsius2farenheit(int(timepassed))
+    canvas.draw_text(str(celsius)+' Farenheit',[WIDTH/16, HEIGHT/6], 14, "white")
+    
+    
+    #draw solar system
+    sun.draw(canvas)
+    for planet in system:
+        planet.draw(canvas)
+
+    #update solar system
+    for planet in system:
+        planet.update()
+        
+    if show_names:
+        for planet in system:
+            if planet.isplanet():
+                canvas.draw_text(str(planet),
+                                 [planet.get_pos()[0] - 2, planet.get_pos()[1] - 10],
+                                 7,"white")
+    if house:
+        
+        #
+        # Structure
+        canvas.draw_polygon([(300, 400), (550, 400), (550, 550), (300, 550)], 2, "Silver", "Silver")
+        canvas.draw_polygon([(225, 400), (425, 350), (625, 400)], 2, "Green", "Green")
+        
+        # Door
+        canvas.draw_polygon([(400, 475), (400, 550), (450, 550), (450, 475)], 2, "Brown", "Brown")
+        canvas.draw_circle((410, 512), 5, 2, "Black", "Black")
+        
+        # Windows
+        canvas.draw_polygon([(525, 450), (525, 500), (475, 500), (475, 450)], 1, "Black", "Blue")
+        canvas.draw_polygon([(525, 450), (525, 500), (475, 500), (475, 450)], 1, "Black", "Blue")
+        canvas.draw_polygon([(325, 450), (325, 500), (375, 500), (375, 450)], 1, "Black", "Blue")
+        canvas.draw_polygon([(525, 450), (525, 500), (475, 500), (475, 450)], 1, "Black", "Blue")
+        canvas.draw_polygon([(325, 450), (325, 500), (375, 500), (375, 450)], 1, "Black", "Blue")
+        canvas.draw_polygon([(525, 450), (525, 500), (475, 500), (475, 450)], 1, "Black", "Blue")
+
+                
+# The fun part, now lets create objects :) for the Solar system
+sun = Sun([WIDTH/2, HEIGHT/2], 10)
+
+mercury = Planet("Mercury", sun, AU, 1, 88.0, False, "#CCC")
+
+venus = Planet("Venus", sun, 2*AU, 2, 224.7, False, "#BDB79B")
+
+earth = Planet("Earth", sun, 3*AU, 4, 365.256363004, False,"blue")
+moon = Planet("Moon", earth, 10 , 1 , 27.321582, False,"white")
+
+mars = Planet("Mars", sun, 4*AU, 1, 687.0, False, "red")
+deimos = Planet("Deimos", mars, 4, .5, 1.26244, False, "red")
+phobos = Planet("Phobos", mars, 3, .5, 0.31891023, False, "red")
+
+ceres = Planet("Ceres", sun, 5*AU, 1, 1679.67, False, "gray")
+
+jupiter = Planet("Jupiter", sun, 6*AU, 5, 4332.59, False, "brown")
+io = Planet("Io", jupiter, 7, .5, 1.769137786, False, "gray")
+europa = Planet("Europa", jupiter, 8, .5, 3.551181, False, "gray")
+ganymede = Planet("Ganymede", jupiter, 9, .5, 7.15455296, False, "gray")
+callisto = Planet("Callisto", jupiter, 10, .5, 16.6890184, False, "gray")
+
+saturn = Planet("Saturn", sun, 7*AU, 5, 10759.22, False, "green")
+mimas = Planet("Mimas", saturn, 6, .5, 0.942422, False, "gray")
+enceladus = Planet("Enceladus", saturn, 6, .5, 1.370218, False, "gray")
+tethys = Planet("Tethys", saturn, 6, .5, 1.887802, False, "gray")
+dione = Planet("Dione", saturn, 6, .5, 2.736915, False, "gray")
+rhea = Planet("Rhea", saturn, 6, .5, 4.518212, False, "gray")
+titan = Planet("Titan", saturn, 6, .5, 15.94542, False, "gray")
+lapetus = Planet("Lapetus", saturn, 6, .5, 79.3215, False, "gray")
+rings = Planet("Rings", sun, 7*AU, 8, 10759.22, False, "darkgray")
+
+uranus = Planet("Uranus", sun, 8*AU, 4, 30799.095, False, "blue")
+titania = Planet("Titania", uranus, 6, .5, 8.705872, False, "gray")
+oberon = Planet("Oberon", uranus, 6, .5, 13.463239, False, "gray")
+umbriel = Planet("Umbriel", uranus, 6, .5, 4.144177, False, "gray")
+ariel = Planet("Ariel", uranus, 6, .5, 2.520379, False, "gray")
+miranda = Planet("Miranda", uranus, 6, .5, 1.413479, False, "gray")
+
+neptune = Planet("Neptune", sun, 9*AU, 4, 60190.03, False, "blue")
+triton = Planet("Triton", neptune, 6, .5, 5.877, True, "gray")
+proteus = Planet("Proteus", neptune, 6, .5, 1.122, False, "gray")
+nereid = Planet("Nereid", neptune, 6, .5, 360.13, False, "gray")
+larissa = Planet("Larissa", neptune, 6, .5, 0.555, False, "gray")
+galatea = Planet("Galatea", neptune, 6, .5, 0.429, False, "gray")
+
+
+# Dwarfs :| no longer planets ...
+pluto = Planet("Pluto", sun, 10*AU, 1, 89865.65, False, "silver")
+haumea = Planet("Haumea", sun, 11*AU, 1, 103468, False, "gray")
+makemake = Planet("Makemake", sun, 12*AU, 1, 113183, False, "gray")
+eris = Planet("Eris", sun, 13*AU, 1, 204870, False, "gray")
+
+def rp(ra):
+    return 1/((33*ra)/1967.0)
+
+hcometcenter = Sun([(WIDTH + 10*AU)/2.0 - 1*AU, HEIGHT/2],1)
+
+system = [mercury, venus, earth, moon, ceres, mars, deimos, phobos, jupiter,
+          io, europa, ganymede, callisto, rings,saturn, uranus, neptune, pluto,
+          haumea, makemake, eris, mimas, enceladus, tethys, dione, rhea,
+          titan, lapetus, triton, proteus, nereid, larissa, galatea,
+          titania, oberon, umbriel, ariel, miranda]
+
+def pause(): timepassed = dps;
+
+frame = simplegui.create_frame("Sistem solar", WIDTH, HEIGHT)
+
+frame.set_draw_handler(draw)
+
+label = frame.add_label('Kontrollzentrum')
+label = frame.add_label(' ')
+planetnames = frame.add_button(button_name[but_show], names, 180)
+label = frame.add_label(' ')
+orbitsdisplay = frame.add_button(button2_name[but2_name], orbits, 150)
+label = frame.add_label(' ')
+label = frame.add_label(' ')
+frame.add_button("Ein Haus", toggle_house, 100)
+label = frame.add_label(' ')
+label = frame.add_label(' ')
+frame.add_button("Pause animation", pause, 100)
+
+frame.start()
